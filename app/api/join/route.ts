@@ -1,14 +1,22 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applyPrivacyOffset, isValidLatLng } from "@/lib/geo";
+import { isAuthEnabled, signSession } from "@/lib/auth";
+import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // POST /api/join — body { id, lat, lng } (raw coords).
 // Applies a 1–3 km privacy offset and upserts the presence row. Raw
-// coordinates are never stored.
+// coordinates are never stored. Returns a signed session token used to
+// authenticate subsequent requests.
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRateLimit(rateLimitKey("POST", "/api/join", ip), 20, 60_000)) {
+    return Response.json({ error: "too many requests" }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -43,5 +51,8 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return Response.json({ ok: true });
+  return Response.json({
+    ok: true,
+    ...(isAuthEnabled() ? { token: signSession(id) } : {}),
+  });
 }

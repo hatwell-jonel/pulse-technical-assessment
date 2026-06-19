@@ -14,7 +14,7 @@
 - [x] Bug 5: Leave doesn't clear connected user's `busy` flag — checks busy before delete and frees remaining busy rows
 - [x] Bug 6: ICE candidates silently dropped — `flushPendingCandidates` runs before `setRemoteDescription` in `handleSignal`, causing all candidates to be lost before the remote description is set
 - [x] Bug 7: Chat messages sent with wrong type tag — `sendChat` used `t: "msg"` but receiver checked for `t: "chat"`
-- [ ] Verify two users can reliably see each other, connect, chat, and trigger video
+- [x] Verify two users can reliably see each other, connect, chat, and trigger video
 
 ## Phase 2 — Make it good
 - [ ] Design system pass (colors, typography, spacing in `@theme inline`)
@@ -26,9 +26,9 @@
 - [ ] Empty/loading/error states
 
 ## Phase 3 — Make it secure
-- [ ] Audit `app/api/*/route.ts` for issues
-- [ ] Fix identified vulnerabilities
-- [ ] Document unfixable items for NOTES.md
+- [x] Audit `app/api/*/route.ts` for issues
+- [x] Fix identified vulnerabilities
+- [x] Document unfixable items for NOTES.md
 
 ## Phase 4 — Make it better
 - [ ] Design and build new feature

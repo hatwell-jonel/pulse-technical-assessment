@@ -59,3 +59,21 @@
 **Root cause:** `lib/webrtc.ts:132` in `sendChat()` used `{ t: "msg", text }` to encode messages, but the data channel receiver in `wireDataChannel` (line 79) checked for `msg.t === "chat"`. The type tag `"msg"` didn't match `"chat"`, so every incoming message was silently dropped by the `catch {}` on line 84 after the `if` branch was skipped.
 
 **Fix:** Changed the type tag in `sendChat()` from `"msg"` to `"chat"` to match the receiver's expectation.
+
+## Phase 3 — Security audit & fixes
+
+### Vulnerabilities identified and fixed
+
+| ID | Issue | Impact | Fix |
+|----|-------|--------|-----|
+| S1 | **No session authentication** | Anyone who knows a user's session ID can forge requests (poll, signal, leave) impersonating that user | Added HMAC-signed session tokens (`lib/auth.ts`). On join, the server signs the session ID with `SERVER_SECRET` (if set) and returns the token. Every subsequent API call requires the token in the `X-Session-Token` header (or body for leave via `sendBeacon`). The server verifies using `timingSafeEqual` to prevent timing attacks. **Auth is optional** — all route guards check `isAuthEnabled()` first, so the app works without `SERVER_SECRET`. |
+| S2 | **No rate limiting** | An attacker could spam `/api/join` to fill the DB, or rapidly poll/signal/leave to exhaust server resources | Added in-memory sliding-window rate limiter (`lib/rate-limit.ts`). Limits: join 20 req/min, leave 10 req/min, poll 60 req/min, signal 40 req/min. Entries are keyed by `METHOD:path:ip`. Keys are evicted after the window expires. |
+| S3 | **Missing input length validation on poll/leave** | Arbitrary-length IDs in search params or body could enable resource exhaustion | Added `id.length < 8 \|\| id.length > 64` validation on poll (`GET`) and leave (`POST`). The join route already had this check. |
+| S4 | **No security headers** | Missing HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy headers | Added `async headers()` in `next.config.ts` with strict security headers for all routes. |
+| S5 | **ngrok dev tunnel URL in source** | Leaked dev tunnel URL in committed `next.config.ts` | Removed `allowedDevOrigins` entirely from committed config. |
+
+### Unfixable items
+
+- **WebRTC IP leak (browser-level):** The WebRTC handshake exposes the user's real IP address to peers, even behind a VPN. Fixing this requires either a TURN server (out of scope) or a relay server (defeats P2P architecture). Users should be aware that their P2P partner can see their public IP during a call.
+- **`sendBeacon` body modification:** The leave endpoint accepts the session token in the JSON body (necessary because `navigator.sendBeacon` can't set custom headers). If an attacker intercepts the beacon payload, they could extract the token. This is partially mitigated by HTTPS encryption in transit. For a production app, add a dedicated ephemeral one-time leave token on join.
+- **In-memory rate limiter:** Current rate limiter is per-process and resets on server restart. For a horizontally-scaled deployment (multiple Vercel instances), this should be replaced with a Redis-backed counter. Acceptable for the demo/take-home scope.

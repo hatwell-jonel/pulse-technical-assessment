@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STALE_MS, SIGNAL_TTL_MS } from "@/lib/presence";
 import type { PollResponse } from "@/lib/types";
+import { isAuthEnabled, verifySession } from "@/lib/auth";
+import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,11 +12,20 @@ export const dynamic = "force-dynamic";
 // It (1) heartbeats the caller, (2) reaps stale presence + orphan signals,
 // (3) returns the filtered online peers, and (4) drains this user's mailbox.
 export async function GET(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRateLimit(rateLimitKey("GET", "/api/poll", ip), 60)) {
+    return Response.json({ error: "too many requests" }, { status: 429 });
+  }
+
   const params = request.nextUrl.searchParams;
   const id = params.get("id");
+  const token = request.headers.get("x-session-token");
 
-  if (!id) {
-    return Response.json({ error: "missing id" }, { status: 400 });
+  if (typeof id !== "string" || id.length < 8 || id.length > 64) {
+    return Response.json({ error: "invalid id" }, { status: 400 });
+  }
+  if (isAuthEnabled() && !verifySession(id, token)) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
   const now = Date.now();

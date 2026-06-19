@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SignalType } from "@/lib/types";
+import { isAuthEnabled, verifySession } from "@/lib/auth";
+import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +23,11 @@ const MAX_PAYLOAD = 64 * 1024; // SDP/ICE are small; cap to be safe.
 // Drops one message into the recipient's mailbox. Also manages the `busy`
 // flag so a user can only be in one connection at a time.
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  if (!checkRateLimit(rateLimitKey("POST", "/api/signal", ip))) {
+    return Response.json({ error: "too many requests" }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -35,6 +42,11 @@ export async function POST(request: NextRequest) {
 
   if (typeof fromId !== "string" || typeof toId !== "string") {
     return Response.json({ error: "invalid ids" }, { status: 400 });
+  }
+
+  const token = request.headers.get("x-session-token");
+  if (isAuthEnabled() && !verifySession(fromId, token)) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
   }
   if (typeof type !== "string" || !VALID_TYPES.includes(type as SignalType)) {
     return Response.json({ error: "invalid type" }, { status: 400 });
