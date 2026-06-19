@@ -11,13 +11,9 @@ export const MOODS: { mood: NonNullable<Mood>; emoji: string; label: string }[] 
   { mood: "curious", emoji: "🤔", label: "Curious" },
 ];
 
-export const MOOD_EMOJI: Record<string, string> = {
-  happy: "😊",
-  sad: "😢",
-  fire: "🔥",
-  tired: "💤",
-  curious: "🤔",
-};
+export const MOOD_EMOJI: Record<NonNullable<Mood>, string> = Object.fromEntries(
+  MOODS.map((m) => [m.mood, m.emoji]),
+) as Record<NonNullable<Mood>, string>;
 
 // Signal mailbox message types.
 export type SignalType =

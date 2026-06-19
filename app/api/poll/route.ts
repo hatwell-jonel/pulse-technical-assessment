@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STALE_MS, SIGNAL_TTL_MS } from "@/lib/presence";
-import type { PeerDot, PollResponse } from "@/lib/types";
+import type { Mood, PeerDot, PollResponse } from "@/lib/types";
 import { isAuthEnabled, verifySession } from "@/lib/auth";
 import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       lat: p.lat,
       lng: p.lng,
       busy: p.busy,
-      mood: p.mood as PeerDot["mood"],
+      mood: p.mood as Mood,
     })),
     signals: inbox.map((s) => ({
       id: s.id,

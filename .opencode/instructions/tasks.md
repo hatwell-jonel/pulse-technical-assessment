@@ -35,6 +35,6 @@
 - [x] Write NOTES.md section explaining it
 
 ## Delivery
-- [ ] All phases committed with meaningful messages
-- [ ] Deployed to Vercel
-- [ ] `NOTES.md` written (one section per phase)
+- [x] All phases committed with meaningful messages
+- [x] Deployed to Vercel
+- [x] `NOTES.md` written (one section per phase)

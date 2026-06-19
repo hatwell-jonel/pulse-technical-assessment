@@ -47,7 +47,7 @@ export default function WorldMap({
 
   // Compute dominant mood for the counter badge.
   const dominantMood = useMemo(() => {
-    const moods = peers.map((p) => p.mood).filter(Boolean) as string[];
+    const moods = peers.map((p) => p.mood).filter(Boolean) as NonNullable<PeerDot["mood"]>[];
     if (moods.length === 0) return null;
     const freq: Record<string, number> = {};
     for (const m of moods) freq[m] = (freq[m] || 0) + 1;

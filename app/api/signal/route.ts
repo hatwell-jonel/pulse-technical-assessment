@@ -69,12 +69,7 @@ export async function POST(request: NextRequest) {
       where: { id: toId },
       select: { busy: true },
     });
-    if (!target) {
-      // Target went offline — tell the initiator it was declined.
-      await sendDecline(toId, fromId);
-      return Response.json({ ok: true, autoDeclined: true });
-    }
-    if (target.busy) {
+    if (!target || target.busy) {
       await sendDecline(toId, fromId);
       return Response.json({ ok: true, autoDeclined: true });
     }
