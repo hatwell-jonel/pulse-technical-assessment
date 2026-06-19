@@ -45,7 +45,7 @@ export default function VideoPanel({
           autoPlay
           playsInline
           muted
-          className="absolute bottom-4 right-4 h-40 w-28 rounded-lg border border-border bg-surface-raised object-cover"
+          className="absolute bottom-4 right-4 h-28 w-20 rounded-lg border border-border bg-surface-raised object-cover md:h-40 md:w-28"
         />
       </div>
       <div className="flex justify-center bg-surface p-4">

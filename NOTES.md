@@ -171,6 +171,13 @@ Gives Pulse a sense of purpose beyond "chat with strangers." When joining, users
 - `app/api/poll/route.ts` — selects `mood` field, returns it in peer response
 - `lib/api.ts` — `join()` accepts optional 4th `mood` param
 
+**Code quality & UX refinements**
+- `useReactiveRef` hook (`lib/useReactiveRef.ts`): extracted the duplicated `useRef`/`useState` pattern from `page.tsx` into a reusable hook (conn and video state pairs)
+- `FloatingBar` component (`app/components/FloatingBar.tsx`): extracted shared floating bar style used by requesting, failed, and video-waiting states
+- Retry on WebRTC failure: when `RTCPeerConnection` enters `failed`, shows "Connection failed" bar with Retry button instead of silently resetting; new `{ kind: "failed"; peerId }` Conn variant
+- Sound on incoming request: Web Audio API chime (660 Hz, 0.3s) on `ConnectionPrompt` mount — no audio files
+- Escape to end active connection: pressing Escape during `connecting`/`connected` calls `endConnection`
+- Mobile responsive: chat panel now `max-w-full sm:max-w-md`, video preview scales down on mobile (`h-28 w-20 md:h-40 md:w-28`)
 
 ### Notes
 - `prisma db push` and `prisma generate` must be run before the app works with the new column
@@ -190,7 +197,6 @@ Gives Pulse a sense of purpose beyond "chat with strangers." When joining, users
 6. **Clean cache:** Delete `.next/` if it exists from a previous build
 7. **Start dev:** `npm run dev`
 8. **Test:** Open two browser windows (normal + incognito), mock different geolocations via DevTools Sensors, and verify peers appear, connect, and can chat
-
 ## Workflow Reflection
 
 I tackled this project in four distinct phases: bug fixes, UI polish, security hardening, and a new feature. Each phase had its own commit, and I never moved to the next until the current one was verified — no overlapping work. My approach was methodical: I used opencode as my AI coding assistant (powered by deepseek-v4-flash-free) to read every relevant file first, understand the broken state, make targeted edits, and confirm with a build. Early on the codebase felt chaotic (7 bugs in a small app!), but once the bugs were squashed and the design system was in place, the rhythm became smooth. The security audit was sobering but satisfying to lock down, and the mood feature was genuinely fun — it gave the app a sense of purpose. Finishing with a clean build and a live Vercel deployment felt like the right capstone to a rewarding build.

@@ -39,7 +39,7 @@ export default function ChatPanel({
   }
 
   return (
-    <div className="animate-slide-in-right absolute inset-y-0 right-0 z-20 flex w-full max-w-md flex-col border-l border-border bg-surface text-fg shadow-2xl">
+    <div className="animate-slide-in-right absolute inset-y-0 right-0 z-20 flex w-full max-w-full flex-col border-l border-border bg-surface text-fg shadow-2xl sm:max-w-md">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <p className="font-semibold">Stranger</p>

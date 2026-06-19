@@ -7,17 +7,20 @@ import WorldMap from "./components/WorldMap";
 import ConnectionPrompt from "./components/ConnectionPrompt";
 import ChatPanel, { type ChatMessage } from "./components/ChatPanel";
 import VideoPanel from "./components/VideoPanel";
+import FloatingBar from "./components/FloatingBar";
 import { join, leave, poll, sendSignal } from "@/lib/api";
 import { PeerSession, type DescType, type PeerControl } from "@/lib/webrtc";
 import { POLL_INTERVAL_MS } from "@/lib/presence";
 import { type PeerDot, type SignalMsg } from "@/lib/types";
+import { useReactiveRef } from "@/lib/useReactiveRef";
 
 type Conn =
   | { kind: "idle" }
   | { kind: "requesting"; peerId: string }
   | { kind: "incoming"; peerId: string; peerMood?: Mood }
   | { kind: "connecting"; peerId: string }
-  | { kind: "connected"; peerId: string };
+  | { kind: "connected"; peerId: string }
+  | { kind: "failed"; peerId: string };
 
 type VideoState = "none" | "requesting" | "incoming" | "active";
 
@@ -35,19 +38,9 @@ export default function Home() {
     null,
   );
 
-  const [conn, _setConn] = useState<Conn>({ kind: "idle" });
-  const connRef = useRef<Conn>(conn);
-  const setConn = (c: Conn) => {
-    connRef.current = c;
-    _setConn(c);
-  };
+  const [conn, setConn, connRef] = useReactiveRef<Conn>({ kind: "idle" });
 
-  const [video, _setVideo] = useState<VideoState>("none");
-  const videoRef = useRef<VideoState>(video);
-  const setVideo = (v: VideoState) => {
-    videoRef.current = v;
-    _setVideo(v);
-  };
+  const [video, setVideo, videoRef] = useReactiveRef<VideoState>("none");
 
   const peerRef = useRef<PeerSession | null>(null);
   const msgId = useRef(0);
@@ -84,7 +77,13 @@ export default function Home() {
       onRemoteStream: (stream) => setRemoteStream(stream),
       onConnectionState: (state) => {
         if (state === "failed") {
-          teardown("Connection failed (network).");
+          const pid =
+            connRef.current.kind === "connecting" ||
+            connRef.current.kind === "connected"
+              ? connRef.current.peerId
+              : null;
+          teardown();
+          if (pid) setConn({ kind: "failed", peerId: pid });
         }
       },
       onChannelOpen: () => {
@@ -297,6 +296,25 @@ export default function Home() {
     };
   }, [phase, sessionId]);
 
+  const endConnectionRef = useRef(endConnection);
+  useEffect(() => {
+    endConnectionRef.current = endConnection;
+  });
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        const c = connRef.current;
+        if (c.kind === "connecting" || c.kind === "connected") {
+          e.preventDefault();
+          endConnectionRef.current();
+        }
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   useEffect(() => {
     if (!sessionId || phase !== "live") return;
     const onLeave = () => leave(sessionId);
@@ -343,7 +361,7 @@ export default function Home() {
       )}
 
       {conn.kind === "requesting" && (
-        <div className="animate-slide-down absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-surface-raised/90 px-4 py-2 text-sm text-fg shadow-lg backdrop-blur">
+        <FloatingBar>
           <span>Requesting connection…</span>
           <button
             onClick={cancelRequest}
@@ -351,7 +369,19 @@ export default function Home() {
           >
             Cancel
           </button>
-        </div>
+        </FloatingBar>
+      )}
+
+      {conn.kind === "failed" && (
+        <FloatingBar>
+          <span>Connection failed.</span>
+          <button
+            onClick={() => requestConnection(conn.peerId)}
+            className="rounded-full bg-surface-overlay px-3 py-1 text-xs hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Retry
+          </button>
+        </FloatingBar>
       )}
 
       {conn.kind === "incoming" && (
@@ -380,9 +410,9 @@ export default function Home() {
       )}
 
       {video === "requesting" && (
-        <div className="animate-slide-down absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-surface-raised/90 px-4 py-2 text-sm text-fg shadow-lg backdrop-blur">
+        <FloatingBar>
           Waiting for stranger to accept video…
-        </div>
+        </FloatingBar>
       )}
 
       {video === "incoming" && (
