@@ -12,6 +12,16 @@ export default function EntryGate({
   const [selectedMood, setSelectedMood] = useState<Mood>(null);
   const [status, setStatus] = useState<"idle" | "locating" | "error">("idle");
   const [error, setError] = useState<string>("");
+  const [prompt, setPrompt] = useState<string | null>(null);
+
+  function handleClick() {
+    if (!selectedMood) {
+      setPrompt("Pick a mood first");
+      setTimeout(() => setPrompt(null), 1500);
+      return;
+    }
+    enter();
+  }
 
   function enter() {
     if (!("geolocation" in navigator)) {
@@ -68,10 +78,16 @@ export default function EntryGate({
             </button>
           ))}
         </div>
+        {!selectedMood && status === "idle" && (
+          <p className="animate-fade-in text-xs text-fg-dim">Pick a mood to continue</p>
+        )}
+        {prompt && (
+          <p className="animate-fade-in text-xs text-accent-soft">{prompt}</p>
+        )}
       </div>
 
       <button
-        onClick={enter}
+        onClick={handleClick}
         disabled={status === "locating"}
         className="flex items-center gap-2 rounded-full bg-accent px-8 py-3 font-semibold text-surface transition hover:bg-accent-soft disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >

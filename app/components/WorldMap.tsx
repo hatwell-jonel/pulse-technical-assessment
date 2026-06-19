@@ -147,6 +147,12 @@ export default function WorldMap({
             e.stopPropagation();
             if (canConnectRef.current) onPeerClickRef.current(peer.id);
           });
+          if (peer.mood && MOOD_EMOJI[peer.mood]) {
+            const label = document.createElement("span");
+            label.className = "mood-label";
+            label.textContent = MOOD_EMOJI[peer.mood];
+            el.appendChild(label);
+          }
           marker = new mapboxgl.Marker({ element: el })
             .setLngLat([peer.lng, peer.lat])
             .addTo(map);
@@ -155,6 +161,20 @@ export default function WorldMap({
         const el = marker.getElement();
         el.style.background = dotColor(peer.mood);
         el.style.opacity = peer.busy ? "0.35" : "1";
+        const existingLabel = el.querySelector(".mood-label");
+        const moodEmoji = peer.mood ? MOOD_EMOJI[peer.mood] : null;
+        if (moodEmoji) {
+          if (existingLabel) {
+            existingLabel.textContent = moodEmoji;
+          } else {
+            const label = document.createElement("span");
+            label.className = "mood-label";
+            label.textContent = moodEmoji;
+            el.appendChild(label);
+          }
+        } else if (existingLabel) {
+          existingLabel.remove();
+        }
       }
 
       for (const [id, marker] of markers) {
