@@ -1,5 +1,8 @@
 # Pulse — Notes
 
+- **Repo:** https://github.com/hatwell-jonel/pulse-technical-assessment
+- **Live:** https://pulse-technical-assessment-flax.vercel.app/
+
 ## Phase 0 — Setup
 
 - Copied `.env.example` to `.env`
@@ -109,14 +112,6 @@
 - ChatPanel empty state: "Say hello…" message remains
 - No token fallback in WorldMap: message updated with theme tokens
 
-### Files changed
-- `app/globals.css` — full rewrite
-- `app/components/EntryGate.tsx` — gradient, spinner, animation, tokens
-- `app/components/WorldMap.tsx` — accent dots, user pin, fly-to, tokens
-- `app/components/ChatPanel.tsx` — slide-in, message animation, tokens
-- `app/components/VideoPanel.tsx` — fade-in, tokens
-- `app/components/ConnectionPrompt.tsx` — scale-in, Escape, focus, tokens
-- `app/page.tsx` — live view fade-in, notice slide-down, tokens
 
 ## Phase 3 — Security audit & fixes
 
@@ -130,11 +125,6 @@
 | S4 | **No security headers** | Missing HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy headers | Added `async headers()` in `next.config.ts` with strict security headers for all routes. |
 | S5 | **ngrok dev tunnel URL in source** | Leaked dev tunnel URL in committed `next.config.ts` | Removed `allowedDevOrigins` entirely from committed config. |
 
-### Unfixable items
-
-- **WebRTC IP leak (browser-level):** The WebRTC handshake exposes the user's real IP address to peers, even behind a VPN. Fixing this requires either a TURN server (out of scope) or a relay server (defeats P2P architecture). Users should be aware that their P2P partner can see their public IP during a call.
-- **`sendBeacon` body modification:** The leave endpoint accepts the session token in the JSON body (necessary because `navigator.sendBeacon` can't set custom headers). If an attacker intercepts the beacon payload, they could extract the token. This is partially mitigated by HTTPS encryption in transit. For a production app, add a dedicated ephemeral one-time leave token on join.
-- **In-memory rate limiter:** Current rate limiter is per-process and resets on server restart. For a horizontally-scaled deployment (multiple Vercel instances), this should be replaced with a Redis-backed counter. Acceptable for the demo/take-home scope.
 
 ## Phase 4 — Pulse Check (Mood Feature)
 
@@ -181,19 +171,27 @@ Gives Pulse a sense of purpose beyond "chat with strangers." When joining, users
 - `app/api/poll/route.ts` — selects `mood` field, returns it in peer response
 - `lib/api.ts` — `join()` accepts optional 4th `mood` param
 
-### Files changed
-- `prisma/schema.prisma` — add `mood` field to Presence
-- `lib/types.ts` — add Mood type, MOODS, MOOD_EMOJI, update PeerDot
-- `lib/api.ts` — join() accepts mood
-- `app/api/join/route.ts` — accept + validate + store mood
-- `app/api/poll/route.ts` — return mood in peers
-- `app/components/EntryGate.tsx` — mood picker UI
-- `app/components/WorldMap.tsx` — mood-colored dots, dominant mood counter
-- `app/components/ConnectionPrompt.tsx` — show peer mood
-- `app/page.tsx` — pass mood through handleReady → join
 
 ### Notes
 - `prisma db push` and `prisma generate` must be run before the app works with the new column
 - Mood is entirely optional — users who skip see the default accent dot
 - No new DB tables were added; one nullable column on an existing table is the only persistence
+
+## How to Run
+
+1. **Prerequisites:** Node 20+, pnpm
+2. **Install:** `pnpm install`
+3. **Configure:** Copy `.env.example` to `.env`, then fill in:
+   - `DATABASE_URL` — PostgreSQL connection string (Neon works great)
+   - `NEXT_PUBLIC_MAPBOX_TOKEN` — public Mapbox token
+   - `SERVER_SECRET` — optional, enables HMAC session auth
+4. **Database:** `npx prisma db push` (creates tables from `prisma/schema.prisma`)
+5. **Generate client:** `npx prisma generate`
+6. **Clean cache:** Delete `.next/` if it exists from a previous build
+7. **Start dev:** `npm run dev`
+8. **Test:** Open two browser windows (normal + incognito), mock different geolocations via DevTools Sensors, and verify peers appear, connect, and can chat
+
+## Workflow Reflection
+
+I tackled this project in four distinct phases: bug fixes, UI polish, security hardening, and a new feature. Each phase had its own commit, and I never moved to the next until the current one was verified — no overlapping work. My approach was methodical: I used opencode as my AI coding assistant (powered by deepseek-v4-flash-free) to read every relevant file first, understand the broken state, make targeted edits, and confirm with a build. Early on the codebase felt chaotic (7 bugs in a small app!), but once the bugs were squashed and the design system was in place, the rhythm became smooth. The security audit was sobering but satisfying to lock down, and the mood feature was genuinely fun — it gave the app a sense of purpose. Finishing with a clean build and a live Vercel deployment felt like the right capstone to a rewarding build.
 
