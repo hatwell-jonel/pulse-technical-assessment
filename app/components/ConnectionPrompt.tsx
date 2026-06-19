@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { Mood } from "@/lib/types";
+import { MOOD_EMOJI } from "@/lib/types";
 
 export default function ConnectionPrompt({
   title,
   subtitle,
+  peerMood,
   acceptLabel,
   declineLabel,
   onAccept,
@@ -12,6 +15,7 @@ export default function ConnectionPrompt({
 }: {
   title: string;
   subtitle?: string;
+  peerMood?: Mood;
   acceptLabel: string;
   declineLabel: string;
   onAccept: () => void;
@@ -31,10 +35,18 @@ export default function ConnectionPrompt({
     return () => window.removeEventListener("keydown", handleKey);
   }, [onDecline]);
 
+  const moodLine =
+    peerMood && MOOD_EMOJI[peerMood]
+      ? `Feeling ${MOOD_EMOJI[peerMood]}`
+      : null;
+
   return (
     <div className="animate-fade-in absolute inset-0 z-20 flex items-center justify-center bg-black/60 p-6">
       <div className="animate-scale-in w-full max-w-xs rounded-2xl bg-surface-raised p-6 text-center text-fg shadow-xl">
         <h2 className="text-lg font-semibold">{title}</h2>
+        {moodLine && (
+          <p className="mt-1 text-sm text-fg-muted">{moodLine}</p>
+        )}
         {subtitle && <p className="mt-1 text-sm text-fg-muted">{subtitle}</p>}
         <div className="mt-5 flex gap-3">
           <button

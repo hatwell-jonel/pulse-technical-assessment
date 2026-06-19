@@ -1,5 +1,5 @@
 // Client-side helpers for talking to the coordination API.
-import type { PollResponse, SignalType } from "@/lib/types";
+import type { Mood, PollResponse, SignalType } from "@/lib/types";
 
 let _token: string | null = null;
 
@@ -13,11 +13,12 @@ export async function join(
   id: string,
   lat: number,
   lng: number,
+  mood?: Mood,
 ): Promise<void> {
   const res = await fetch("/api/join", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, lat, lng }),
+    body: JSON.stringify({ id, lat, lng, mood }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

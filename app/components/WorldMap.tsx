@@ -1,11 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Map as MapboxMap, Marker } from "mapbox-gl";
 import type { PeerDot } from "@/lib/types";
+import { MOOD_EMOJI } from "@/lib/types";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "pk.eyJ1IjoicHVsc2UtbWFwIiwiYSI6ImNrMDBkZW1vMDAwMDAwMDAifQ.AAAAAAAAAAAAAAAAAAAAAA";
+
+const MOOD_COLORS: Record<string, string> = {
+  happy: "#34d399",
+  sad: "#60a5fa",
+  fire: "#f97316",
+  tired: "#a78bfa",
+  curious: "#facc15",
+};
+
+function dotColor(mood: string | null): string {
+  if (mood && MOOD_COLORS[mood]) return MOOD_COLORS[mood];
+  return "var(--color-accent)";
+}
 
 export default function WorldMap({
   peers,
@@ -30,6 +44,17 @@ export default function WorldMap({
     onPeerClickRef.current = onPeerClick;
     canConnectRef.current = canConnect;
   });
+
+  // Compute dominant mood for the counter badge.
+  const dominantMood = useMemo(() => {
+    const moods = peers.map((p) => p.mood).filter(Boolean) as string[];
+    if (moods.length === 0) return null;
+    const freq: Record<string, number> = {};
+    for (const m of moods) freq[m] = (freq[m] || 0) + 1;
+    let best = moods[0];
+    for (const m of moods) if (freq[m] > freq[best]) best = m;
+    return { mood: best, count: freq[best] };
+  }, [peers]);
 
   // Initialise the map once.
   useEffect(() => {
@@ -116,7 +141,7 @@ export default function WorldMap({
         if (!marker) {
           const el = document.createElement("button");
           el.className = "pulse-dot";
-          el.style.background = "var(--color-accent)";
+          el.style.background = dotColor(peer.mood);
           el.title = "Tap to connect";
           el.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -127,7 +152,9 @@ export default function WorldMap({
             .addTo(map);
           markers.set(peer.id, marker);
         }
-        marker.getElement().style.opacity = peer.busy ? "0.35" : "1";
+        const el = marker.getElement();
+        el.style.background = dotColor(peer.mood);
+        el.style.opacity = peer.busy ? "0.35" : "1";
       }
 
       for (const [id, marker] of markers) {
@@ -157,8 +184,14 @@ export default function WorldMap({
         </div>
       )}
 
-      <div className="absolute bottom-4 left-4 rounded-full bg-surface-raised/80 px-3 py-1.5 text-xs text-fg-muted backdrop-blur">
-        {peers.length} online
+      <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-surface-raised/80 px-3 py-1.5 text-xs text-fg-muted backdrop-blur">
+        {dominantMood && (
+          <span>
+            {MOOD_EMOJI[dominantMood.mood] ?? ""} {dominantMood.count}
+            <span className="mx-1">&middot;</span>
+          </span>
+        )}
+        <span>{peers.length} online</span>
       </div>
     </div>
   );

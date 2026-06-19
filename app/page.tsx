@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Mood } from "@/lib/types";
 import EntryGate from "./components/EntryGate";
 import WorldMap from "./components/WorldMap";
 import ConnectionPrompt from "./components/ConnectionPrompt";
@@ -14,7 +15,7 @@ import { type PeerDot, type SignalMsg } from "@/lib/types";
 type Conn =
   | { kind: "idle" }
   | { kind: "requesting"; peerId: string }
-  | { kind: "incoming"; peerId: string }
+  | { kind: "incoming"; peerId: string; peerMood?: Mood }
   | { kind: "connecting"; peerId: string }
   | { kind: "connected"; peerId: string };
 
@@ -212,7 +213,8 @@ export default function Home() {
     switch (sig.type) {
       case "request": {
         if (connRef.current.kind === "idle") {
-          setConn({ kind: "incoming", peerId: sig.fromId });
+          const peer = peers.find((p) => p.id === sig.fromId);
+          setConn({ kind: "incoming", peerId: sig.fromId, peerMood: peer?.mood ?? null });
         } else {
           void sendSignal(sessionId, sig.fromId, "decline");
         }
@@ -306,10 +308,10 @@ export default function Home() {
     };
   }, [sessionId, phase]);
 
-  async function handleReady(lat: number, lng: number) {
+  async function handleReady(lat: number, lng: number, mood?: Mood) {
     try {
       setMyLocation({ lat, lng });
-      await join(sessionId, lat, lng);
+      await join(sessionId, lat, lng, mood);
       setPhase("live");
     } catch (e) {
       showNotice(e instanceof Error ? e.message : "Failed to join.");
@@ -355,6 +357,7 @@ export default function Home() {
       {conn.kind === "incoming" && (
         <ConnectionPrompt
           title="A stranger wants to connect"
+          peerMood={conn.peerMood}
           acceptLabel="Accept"
           declineLabel="Decline"
           onAccept={acceptIncoming}

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import type { Mood } from "@/lib/types";
+import { MOODS } from "@/lib/types";
 
 export default function EntryGate({
   onReady,
 }: {
-  onReady: (lat: number, lng: number) => void;
+  onReady: (lat: number, lng: number, mood?: Mood) => void;
 }) {
+  const [selectedMood, setSelectedMood] = useState<Mood>(null);
   const [status, setStatus] = useState<"idle" | "locating" | "error">("idle");
   const [error, setError] = useState<string>("");
 
@@ -18,7 +21,7 @@ export default function EntryGate({
     }
     setStatus("locating");
     navigator.geolocation.getCurrentPosition(
-      (pos) => onReady(pos.coords.latitude, pos.coords.longitude),
+      (pos) => onReady(pos.coords.latitude, pos.coords.longitude, selectedMood),
       (err) => {
         setStatus("error");
         setError(
@@ -45,6 +48,26 @@ export default function EntryGate({
         <p className="mt-2 max-w-sm text-fg-muted">
           A living globe of anonymous strangers. Drop onto the map and connect.
         </p>
+      </div>
+
+      <div className="animate-fade-in flex flex-col items-center gap-3">
+        <p className="text-sm text-fg-muted">How are you feeling?</p>
+        <div className="flex gap-2">
+          {MOODS.map(({ mood, emoji, label }) => (
+            <button
+              key={mood}
+              onClick={() => setSelectedMood(selectedMood === mood ? null : mood)}
+              className={`flex h-10 w-10 items-center justify-center rounded-full text-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                selectedMood === mood
+                  ? "scale-110 bg-accent ring-2 ring-accent-soft"
+                  : "bg-surface-raised hover:bg-surface-overlay"
+              }`}
+              title={label}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
       </div>
 
       <button

@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STALE_MS, SIGNAL_TTL_MS } from "@/lib/presence";
-import type { PollResponse } from "@/lib/types";
+import type { PeerDot, PollResponse } from "@/lib/types";
 import { isAuthEnabled, verifySession } from "@/lib/auth";
 import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       id: { not: id },
       lastSeen: { gte: staleCutoff },
     },
-    select: { id: true, lat: true, lng: true, busy: true },
+    select: { id: true, lat: true, lng: true, busy: true, mood: true },
   });
 
   // 4) Drain this user's mailbox: read, then delete exactly what we read so a
@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
       lat: p.lat,
       lng: p.lng,
       busy: p.busy,
+      mood: p.mood as PeerDot["mood"],
     })),
     signals: inbox.map((s) => ({
       id: s.id,

@@ -135,3 +135,82 @@
 - **WebRTC IP leak (browser-level):** The WebRTC handshake exposes the user's real IP address to peers, even behind a VPN. Fixing this requires either a TURN server (out of scope) or a relay server (defeats P2P architecture). Users should be aware that their P2P partner can see their public IP during a call.
 - **`sendBeacon` body modification:** The leave endpoint accepts the session token in the JSON body (necessary because `navigator.sendBeacon` can't set custom headers). If an attacker intercepts the beacon payload, they could extract the token. This is partially mitigated by HTTPS encryption in transit. For a production app, add a dedicated ephemeral one-time leave token on join.
 - **In-memory rate limiter:** Current rate limiter is per-process and resets on server restart. For a horizontally-scaled deployment (multiple Vercel instances), this should be replaced with a Redis-backed counter. Acceptable for the demo/take-home scope.
+
+### Vulnerabilities identified and fixed
+
+| ID | Issue | Impact | Fix |
+|----|-------|--------|-----|
+| S1 | **No session authentication** | Anyone who knows a user's session ID can forge requests (poll, signal, leave) impersonating that user | Added HMAC-signed session tokens (`lib/auth.ts`). On join, the server signs the session ID with `SERVER_SECRET` (if set) and returns the token. Every subsequent API call requires the token in the `X-Session-Token` header (or body for leave via `sendBeacon`). The server verifies using `timingSafeEqual` to prevent timing attacks. **Auth is optional** — all route guards check `isAuthEnabled()` first, so the app works without `SERVER_SECRET`. |
+| S2 | **No rate limiting** | An attacker could spam `/api/join` to fill the DB, or rapidly poll/signal/leave to exhaust server resources | Added in-memory sliding-window rate limiter (`lib/rate-limit.ts`). Limits: join 20 req/min, leave 10 req/min, poll 60 req/min, signal 40 req/min. Entries are keyed by `METHOD:path:ip`. Keys are evicted after the window expires. |
+| S3 | **Missing input length validation on poll/leave** | Arbitrary-length IDs in search params or body could enable resource exhaustion | Added `id.length < 8 \|\| id.length > 64` validation on poll (`GET`) and leave (`POST`). The join route already had this check. |
+| S4 | **No security headers** | Missing HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy headers | Added `async headers()` in `next.config.ts` with strict security headers for all routes. |
+| S5 | **ngrok dev tunnel URL in source** | Leaked dev tunnel URL in committed `next.config.ts` | Removed `allowedDevOrigins` entirely from committed config. |
+
+### Unfixable items
+
+- **WebRTC IP leak (browser-level):** The WebRTC handshake exposes the user's real IP address to peers, even behind a VPN. Fixing this requires either a TURN server (out of scope) or a relay server (defeats P2P architecture). Users should be aware that their P2P partner can see their public IP during a call.
+- **`sendBeacon` body modification:** The leave endpoint accepts the session token in the JSON body (necessary because `navigator.sendBeacon` can't set custom headers). If an attacker intercepts the beacon payload, they could extract the token. This is partially mitigated by HTTPS encryption in transit. For a production app, add a dedicated ephemeral one-time leave token on join.
+- **In-memory rate limiter:** Current rate limiter is per-process and resets on server restart. For a horizontally-scaled deployment (multiple Vercel instances), this should be replaced with a Redis-backed counter. Acceptable for the demo/take-home scope.
+
+
+## Phase 4 — Pulse Check (Mood Feature)
+
+### Concept
+Gives Pulse a sense of purpose beyond "chat with strangers." When joining, users optionally pick a mood (😊😢🔥💤🤔). Their dot on the map takes the mood's color, and the map shows the dominant mood in the area. It answers: "How is my community feeling right now?"
+
+### Changes
+
+**Data layer**
+- Added `mood String?` to `Presence` model in Prisma schema (`prisma/schema.prisma`)
+- Join API accepts optional `mood` param and stores it in the presence upsert
+- Poll API returns `mood` in each peer object
+
+**Client types (`lib/types.ts`)**
+- New `Mood` type: `"happy" | "sad" | "fire" | "tired" | "curious" | null`
+- `MOODS` constant array with mood → emoji → label mappings
+- `MOOD_EMOJI` record for quick emoji lookup from mood string
+- `PeerDot` now includes `mood: Mood`
+
+**Entry gate (`EntryGate.tsx`)**
+- New mood picker row between the tagline and the "Enter Pulse" button
+- 5 emoji buttons; selected one gets a highlighted accent background + ring
+- Tapping the same emoji again deselects (mood stays null)
+- Mood is passed to `onReady` → `join()` → stored in DB
+
+**Map (`WorldMap.tsx`)**
+- Peer dots use mood-specific colors:
+  - 😊 happy → `#34d399` (green)
+  - 😢 sad → `#60a5fa` (blue)
+  - 🔥 fire → `#f97316` (orange)
+  - 💤 tired → `#a78bfa` (violet)
+  - 🤔 curious → `#facc15` (yellow)
+  - null → accent coral (neutral)
+- Bottom-left counter shows dominant mood emoji + count alongside total online (e.g. "😊 3 · 5 online")
+- Dots update color dynamically when peer list changes
+
+**Connection flow**
+- `ConnectionPrompt` accepts optional `peerMood` prop
+- When receiving a request, if the other user set a mood, the prompt shows "Feeling 😊"
+- `page.tsx` finds the peer's mood from the peers list when processing a "request" signal
+
+**API layer**
+- `app/api/join/route.ts` — validates mood against `VALID_MOODS` array, stores in create + update
+- `app/api/poll/route.ts` — selects `mood` field, returns it in peer response
+- `lib/api.ts` — `join()` accepts optional 4th `mood` param
+
+### Files changed
+- `prisma/schema.prisma` — add `mood` field to Presence
+- `lib/types.ts` — add Mood type, MOODS, MOOD_EMOJI, update PeerDot
+- `lib/api.ts` — join() accepts mood
+- `app/api/join/route.ts` — accept + validate + store mood
+- `app/api/poll/route.ts` — return mood in peers
+- `app/components/EntryGate.tsx` — mood picker UI
+- `app/components/WorldMap.tsx` — mood-colored dots, dominant mood counter
+- `app/components/ConnectionPrompt.tsx` — show peer mood
+- `app/page.tsx` — pass mood through handleReady → join
+
+### Notes
+- `prisma db push` and `prisma generate` must be run before the app works with the new column
+- Mood is entirely optional — users who skip see the default accent dot
+- No new DB tables were added; one nullable column on an existing table is the only persistence
+

@@ -31,8 +31,8 @@
 - [x] Document unfixable items for NOTES.md
 
 ## Phase 4 — Make it better
-- [ ] Design and build new feature
-- [ ] Write NOTES.md section explaining it
+- [x] Design and build new feature (Pulse Check mood feature)
+- [x] Write NOTES.md section explaining it
 
 ## Delivery
 - [ ] All phases committed with meaningful messages

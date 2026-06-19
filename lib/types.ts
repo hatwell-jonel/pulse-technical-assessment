@@ -1,5 +1,24 @@
 // Shared types across client + API.
 
+// Mood a user can express on joining.
+export type Mood = "happy" | "sad" | "fire" | "tired" | "curious" | null;
+
+export const MOODS: { mood: NonNullable<Mood>; emoji: string; label: string }[] = [
+  { mood: "happy", emoji: "😊", label: "Happy" },
+  { mood: "sad", emoji: "😢", label: "Sad" },
+  { mood: "fire", emoji: "🔥", label: "Fire" },
+  { mood: "tired", emoji: "💤", label: "Tired" },
+  { mood: "curious", emoji: "🤔", label: "Curious" },
+];
+
+export const MOOD_EMOJI: Record<string, string> = {
+  happy: "😊",
+  sad: "😢",
+  fire: "🔥",
+  tired: "💤",
+  curious: "🤔",
+};
+
 // Signal mailbox message types.
 export type SignalType =
   | "request" // connection request (tap a dot)
@@ -15,6 +34,7 @@ export interface PeerDot {
   lat: number;
   lng: number;
   busy: boolean;
+  mood: Mood;
 }
 
 export interface SignalMsg {
