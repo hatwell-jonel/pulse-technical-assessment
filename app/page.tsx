@@ -281,7 +281,10 @@ export default function Home() {
         if (!active) return;
         setPeers(data.peers);
         for (const s of data.signals) processSignalRef.current(s);
-      } catch {}
+      } catch (e) {
+        if (!active) return;
+        console.error("Poll failed:", e);
+      }
       if (active) timer = setTimeout(tick, POLL_INTERVAL_MS);
     };
     tick();
@@ -304,9 +307,13 @@ export default function Home() {
   }, [sessionId, phase]);
 
   async function handleReady(lat: number, lng: number) {
-    setMyLocation({ lat, lng });
-    await join(sessionId, lat, lng);
-    setPhase("live");
+    try {
+      setMyLocation({ lat, lng });
+      await join(sessionId, lat, lng);
+      setPhase("live");
+    } catch (e) {
+      showNotice(e instanceof Error ? e.message : "Failed to join.");
+    }
   }
 
   if (phase === "gate") {

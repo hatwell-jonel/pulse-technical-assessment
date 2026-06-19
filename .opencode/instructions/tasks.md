@@ -7,10 +7,13 @@
 - [x] Test with two browser windows (normal + incognito), mock geolocations
 
 ## Phase 1 — Make it run
-- [ ] Bug 1: —
-- [ ] Bug 2: —
-- [ ] Bug 3: —
-- [ ] Bug 4: —
+- [x] Bug 1: `join()` ignores API errors — throws on non-ok response instead
+- [x] Bug 2: Poll errors silently swallowed — logs to console instead
+- [x] Bug 3: Heartbeat refreshes all rows instead of just the caller's — changed `where: {}` to `where: { id }`
+- [x] Bug 4: `"end"` signal doesn't clear `busy` flag — added `|| signalType === "end"` to the decline handler
+- [x] Bug 5: Leave doesn't clear connected user's `busy` flag — checks busy before delete and frees remaining busy rows
+- [x] Bug 6: ICE candidates silently dropped — `flushPendingCandidates` runs before `setRemoteDescription` in `handleSignal`, causing all candidates to be lost before the remote description is set
+- [x] Bug 7: Chat messages sent with wrong type tag — `sendChat` used `t: "msg"` but receiver checked for `t: "chat"`
 - [ ] Verify two users can reliably see each other, connect, chat, and trigger video
 
 ## Phase 2 — Make it good
