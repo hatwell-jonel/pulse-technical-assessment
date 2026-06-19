@@ -117,13 +117,13 @@
 
 ### Vulnerabilities identified and fixed
 
-| ID | Issue | Impact | Fix |
-|----|-------|--------|-----|
-| S1 | **No session authentication** | Anyone who knows a user's session ID can forge requests (poll, signal, leave) impersonating that user | Added HMAC-signed session tokens (`lib/auth.ts`). On join, the server signs the session ID with `SERVER_SECRET` (if set) and returns the token. Every subsequent API call requires the token in the `X-Session-Token` header (or body for leave via `sendBeacon`). The server verifies using `timingSafeEqual` to prevent timing attacks. **Auth is optional** — all route guards check `isAuthEnabled()` first, so the app works without `SERVER_SECRET`. |
-| S2 | **No rate limiting** | An attacker could spam `/api/join` to fill the DB, or rapidly poll/signal/leave to exhaust server resources | Added in-memory sliding-window rate limiter (`lib/rate-limit.ts`). Limits: join 20 req/min, leave 10 req/min, poll 60 req/min, signal 40 req/min. Entries are keyed by `METHOD:path:ip`. Keys are evicted after the window expires. |
-| S3 | **Missing input length validation on poll/leave** | Arbitrary-length IDs in search params or body could enable resource exhaustion | Added `id.length < 8 \|\| id.length > 64` validation on poll (`GET`) and leave (`POST`). The join route already had this check. |
-| S4 | **No security headers** | Missing HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy headers | Added `async headers()` in `next.config.ts` with strict security headers for all routes. |
-| S5 | **ngrok dev tunnel URL in source** | Leaked dev tunnel URL in committed `next.config.ts` | Removed `allowedDevOrigins` entirely from committed config. |
+| ID | Severity | Issue | Impact | Fix |
+|----|----------|-------|--------|-----|
+| S1 | **Critical** | **No session authentication** | Anyone who knows a user's session ID can forge requests (poll, signal, leave) impersonating that user | Added HMAC-signed session tokens (`lib/auth.ts`). On join, the server signs the session ID with `SERVER_SECRET` (if set) and returns the token. Every subsequent API call requires the token in the `X-Session-Token` header (or body for leave via `sendBeacon`). The server verifies using `timingSafeEqual` to prevent timing attacks. **Auth is optional** — all route guards check `isAuthEnabled()` first, so the app works without `SERVER_SECRET`. |
+| S2 | **High** | **No rate limiting** | An attacker could spam `/api/join` to fill the DB, or rapidly poll/signal/leave to exhaust server resources | Added in-memory sliding-window rate limiter (`lib/rate-limit.ts`). Limits: join 20 req/min, leave 10 req/min, poll 60 req/min, signal 40 req/min. Entries are keyed by `METHOD:path:ip`. Keys are evicted after the window expires. |
+| S3 | **Medium** | **Missing input length validation on poll/leave** | Arbitrary-length IDs in search params or body could enable resource exhaustion | Added `id.length < 8 \|\| id.length > 64` validation on poll (`GET`) and leave (`POST`). The join route already had this check. |
+| S4 | **Medium** | **No security headers** | Missing HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy headers | Added `async headers()` in `next.config.ts` with strict security headers for all routes. |
+| S5 | **Low** | **ngrok dev tunnel URL in source** | Leaked dev tunnel URL in committed `next.config.ts` | Removed `allowedDevOrigins` entirely from committed config. |
 
 
 ## Phase 4 — Pulse Check (Mood Feature)
@@ -184,6 +184,13 @@ Gives Pulse a sense of purpose beyond "chat with strangers." When joining, users
 - Mood is entirely optional — users who skip see the default accent dot
 - No new DB tables were added; one nullable column on an existing table is the only persistence
 
+### What I'd do next with more time
+- **Group rooms** — let 3-4 people chat together instead of always one-on-one. Would make Pulse feel more like a community hangout.
+- **Mood trend chart** — a simple line graph showing how moods in the area change over the day. Would make the mood feature more fun to check back on.
+- **Basic relay for video** — some workplace/school Wi-Fi blocks WebRTC. A simple relay server would help those users connect via video too.
+- **Notification sounds** — a subtle ping when someone new appears on the map or when you get a message, so you don't have to watch the screen the whole time.
+- **Safety tools** — mute, block, and report buttons so users feel safer using Pulse with strangers.
+
 ## How to Run
 
 1. **Prerequisites:** Node 20+, pnpm
@@ -197,6 +204,7 @@ Gives Pulse a sense of purpose beyond "chat with strangers." When joining, users
 6. **Clean cache:** Delete `.next/` if it exists from a previous build
 7. **Start dev:** `npm run dev`
 8. **Test:** Open two browser windows (normal + incognito), mock different geolocations via DevTools Sensors, and verify peers appear, connect, and can chat
+
 ## Workflow Reflection
 
 I tackled this project in four distinct phases: bug fixes, UI polish, security hardening, and a new feature. Each phase had its own commit, and I never moved to the next until the current one was verified — no overlapping work. My approach was methodical: I used opencode as my AI coding assistant (powered by deepseek-v4-flash-free) to read every relevant file first, understand the broken state, make targeted edits, and confirm with a build. Early on the codebase felt chaotic (7 bugs in a small app!), but once the bugs were squashed and the design system was in place, the rhythm became smooth. The security audit was sobering but satisfying to lock down, and the mood feature was genuinely fun — it gave the app a sense of purpose. Finishing with a clean build and a live Vercel deployment felt like the right capstone to a rewarding build.
