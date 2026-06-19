@@ -7,14 +7,6 @@ import type { PeerDot } from "@/lib/types";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "pk.eyJ1IjoicHVsc2UtbWFwIiwiYSI6ImNrMDBkZW1vMDAwMDAwMDAifQ.AAAAAAAAAAAAAAAAAAAAAA";
 
-function dotColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  }
-  return `hsl(${Math.abs(hash) % 360}, 70%, 60%)`;
-}
-
 export default function WorldMap({
   peers,
   me,
@@ -32,8 +24,6 @@ export default function WorldMap({
   const meMarkerRef = useRef<Marker | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Marker click handlers are bound once, so read the live click handler +
-  // connectability through refs (synced in an effect, never during render).
   const onPeerClickRef = useRef(onPeerClick);
   const canConnectRef = useRef(canConnect);
   useEffect(() => {
@@ -54,9 +44,8 @@ export default function WorldMap({
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/dark-v11",
-        // Open centered on the user if we know where they are, else world view.
-        center: me ? [me.lng, me.lat] : [0, 20],
-        zoom: me ? 4 : 1.4,
+        center: [0, 20],
+        zoom: 1.4,
         attributionControl: true,
       });
       map.on("load", () => {
@@ -75,11 +64,10 @@ export default function WorldMap({
       mapRef.current = null;
       setReady(false);
     };
-    // `me` is only read for the initial center; we don't want to re-init on change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Show / move the user's own "you are here" pin.
+  // Show / move the user's own pin. Also fly to the user on first mount.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || !me) return;
@@ -89,11 +77,14 @@ export default function WorldMap({
       const mapboxgl = (await import("mapbox-gl")).default;
       if (cancelled) return;
       if (!meMarkerRef.current) {
+        map.flyTo({ center: [me.lng, me.lat], zoom: 4, duration: 1500 });
         const el = document.createElement("div");
         el.className = "pulse-me";
         el.title = "You are here";
-        el.innerHTML = `<span class="pulse-me-label">Me</span>📍`;
-        // anchor "bottom" → the pin's tip sits on the exact coordinate.
+        const label = document.createElement("span");
+        label.className = "pulse-me-label";
+        label.textContent = "You";
+        el.appendChild(label);
         meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
           .setLngLat([me.lng, me.lat])
           .addTo(map);
@@ -107,7 +98,7 @@ export default function WorldMap({
     };
   }, [me, ready]);
 
-  // Reconcile markers whenever the peer list changes (or the map becomes ready).
+  // Reconcile markers whenever the peer list changes.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -125,7 +116,7 @@ export default function WorldMap({
         if (!marker) {
           const el = document.createElement("button");
           el.className = "pulse-dot";
-          el.style.background = dotColor(peer.id);
+          el.style.background = "var(--color-accent)";
           el.title = "Tap to connect";
           el.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -139,7 +130,6 @@ export default function WorldMap({
         marker.getElement().style.opacity = peer.busy ? "0.35" : "1";
       }
 
-      // Drop markers for peers that went offline / got filtered out.
       for (const [id, marker] of markers) {
         if (!seen.has(id)) {
           marker.remove();
@@ -155,20 +145,19 @@ export default function WorldMap({
 
   return (
     <div className="absolute inset-0">
-      <div ref={containerRef} className="h-full w-full bg-zinc-900" />
+      <div ref={containerRef} className="h-full w-full bg-surface" />
 
       {!TOKEN && (
         <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-          <p className="max-w-md rounded-lg bg-zinc-800 p-4 text-sm text-zinc-200">
+          <p className="max-w-md rounded-lg bg-surface-raised p-4 text-sm text-fg">
             Set{" "}
-            <code className="text-emerald-400">NEXT_PUBLIC_MAPBOX_TOKEN</code> in{" "}
+            <code className="text-accent">NEXT_PUBLIC_MAPBOX_TOKEN</code> in{" "}
             <code>.env</code> to load the map.
           </p>
         </div>
       )}
 
-      {/* Online count */}
-      <div className="absolute bottom-4 left-4 rounded-full bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur">
+      <div className="absolute bottom-4 left-4 rounded-full bg-surface-raised/80 px-3 py-1.5 text-xs text-fg-muted backdrop-blur">
         {peers.length} online
       </div>
     </div>

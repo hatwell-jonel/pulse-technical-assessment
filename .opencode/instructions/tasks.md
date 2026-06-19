@@ -17,13 +17,13 @@
 - [x] Verify two users can reliably see each other, connect, chat, and trigger video
 
 ## Phase 2 — Make it good
-- [ ] Design system pass (colors, typography, spacing in `@theme inline`)
-- [ ] Entry gate polish
-- [ ] Map/peers UI polish
-- [ ] Connection flow polish
-- [ ] Chat/Video panel polish
-- [ ] Animations and transitions
-- [ ] Empty/loading/error states
+- [x] Design system pass (colors, typography, spacing in `@theme inline`)
+- [x] Entry gate polish
+- [x] Map/peers UI polish
+- [x] Connection flow polish
+- [x] Chat/Video panel polish
+- [x] Animations and transitions
+- [x] Empty/loading/error states
 
 ## Phase 3 — Make it secure
 - [x] Audit `app/api/*/route.ts` for issues

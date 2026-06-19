@@ -60,6 +60,64 @@
 
 **Fix:** Changed the type tag in `sendChat()` from `"msg"` to `"chat"` to match the receiver's expectation.
 
+## Phase 2 — UI/UX polish
+
+### Design system
+- Replaced minimal `@theme inline` (4 tokens) with a full design system using a warm coral palette:
+  - `--color-surface` / `--color-surface-raised` / `--color-surface-overlay` for layered depth
+  - `--color-accent` / `--color-accent-soft` / `--color-accent-muted` for interaction elements
+  - `--color-danger` for destructive actions (end connection, end video)
+  - `--color-fg` / `--color-fg-muted` / `--color-fg-dim` for text hierarchy
+  - `--color-border` for dividers and subtle outlines
+  - Custom border-radius tokens (`--radius-sm` through `--radius-xl`)
+- Replaced every hardcoded Tailwind utility color (`bg-zinc-*`, `text-zinc-*`, `bg-emerald-*`, `border-zinc-*`) with semantic theme tokens across all components
+
+### Entry gate polish
+- Added warm accent radial gradient background for visual warmth
+- Card entrance animation (`animate-scale-in`) on mount
+- "Locating…" text replaced with CSS spinner + label
+- Error text animates in (`animate-fade-in`)
+- Reduced placeholder text to essentials
+- Added `focus-visible` ring styles for keyboard accessibility
+
+### Map/peers polish
+- Peer dots use accent color (`--color-accent`) instead of random HSL — keeps palette consistent
+- User pin replaced from 📍 emoji to a styled accent dot matching peer dot style ("You" label)
+- Map flies to user's location on entry (`map.flyTo`, 1.5s duration)
+- All colors replaced with theme tokens (surface, fg, accent)
+
+### Connection flow polish
+- ConnectionPrompt: scale-in + fade-in entrance animation (card + backdrop)
+- ConnectionPrompt: Escape key dismisses the prompt
+- ConnectionPrompt: Accept button auto-focused on mount
+- All colors replaced with theme tokens
+
+### Chat/Video panel polish
+- ChatPanel: slides in from the right (`animate-slide-in-right`)
+- Chat messages: each bubble fades in with slight scale-up (`animate-message-in`)
+- VideoPanel: fades in on mount (`animate-fade-in`)
+- All colors replaced with theme tokens
+
+### Animations and transitions
+- Keyframe definitions in `globals.css`: `fade-in`, `slide-in-right`, `scale-in`, `message-in`, `slide-down`, `spinner`
+- Live view entrance: `animate-fade-in` on `<main>` wrapper
+- Notice bar and requesting bars: `animate-slide-down` (slide + fade)
+- Each notice instance gets a unique `key` so React remounts it, triggering the animation on each show
+
+### Empty/loading states
+- "Locating…" state in EntryGate: CSS spinner replaces bare text
+- ChatPanel empty state: "Say hello…" message remains
+- No token fallback in WorldMap: message updated with theme tokens
+
+### Files changed
+- `app/globals.css` — full rewrite
+- `app/components/EntryGate.tsx` — gradient, spinner, animation, tokens
+- `app/components/WorldMap.tsx` — accent dots, user pin, fly-to, tokens
+- `app/components/ChatPanel.tsx` — slide-in, message animation, tokens
+- `app/components/VideoPanel.tsx` — fade-in, tokens
+- `app/components/ConnectionPrompt.tsx` — scale-in, Escape, focus, tokens
+- `app/page.tsx` — live view fade-in, notice slide-down, tokens
+
 ## Phase 3 — Security audit & fixes
 
 ### Vulnerabilities identified and fixed

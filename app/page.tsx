@@ -323,7 +323,7 @@ export default function Home() {
   const inChat = conn.kind === "connecting" || conn.kind === "connected";
 
   return (
-    <main className="fixed inset-0 overflow-hidden">
+    <main className="animate-fade-in fixed inset-0 overflow-hidden">
       <WorldMap
         peers={peers}
         me={myLocation}
@@ -332,17 +332,20 @@ export default function Home() {
       />
 
       {notice && (
-        <div className="absolute left-1/2 top-20 z-30 -translate-x-1/2 rounded-full bg-zinc-800/90 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur">
+        <div
+          key={notice}
+          className="absolute left-1/2 top-20 z-30 -translate-x-1/2 animate-slide-down rounded-full bg-surface-raised/90 px-4 py-2 text-sm text-fg shadow-lg backdrop-blur"
+        >
           {notice}
         </div>
       )}
 
       {conn.kind === "requesting" && (
-        <div className="absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-zinc-800/90 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur">
+        <div className="animate-slide-down absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-3 rounded-full bg-surface-raised/90 px-4 py-2 text-sm text-fg shadow-lg backdrop-blur">
           <span>Requesting connection…</span>
           <button
             onClick={cancelRequest}
-            className="rounded-full bg-zinc-700 px-3 py-1 text-xs hover:bg-zinc-600"
+            className="rounded-full bg-surface-overlay px-3 py-1 text-xs hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             Cancel
           </button>
@@ -374,7 +377,7 @@ export default function Home() {
       )}
 
       {video === "requesting" && (
-        <div className="absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-zinc-800/90 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur">
+        <div className="animate-slide-down absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-surface-raised/90 px-4 py-2 text-sm text-fg shadow-lg backdrop-blur">
           Waiting for stranger to accept video…
         </div>
       )}

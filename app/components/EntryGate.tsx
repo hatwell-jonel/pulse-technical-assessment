@@ -27,17 +27,22 @@ export default function EntryGate({
             : "Couldn't get your location. Please try again.",
         );
       },
-      // High accuracy + maximumAge:0 forces a fresh fix (Wi-Fi/GPS scan)
-      // instead of reusing the browser's cached IP-based location.
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col items-center justify-center gap-8 bg-zinc-950 p-6 text-zinc-100">
-      <div className="text-center">
+    <div className="relative flex min-h-full flex-1 flex-col items-center justify-center gap-8 bg-surface p-6 text-fg">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.08]"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 40%, var(--color-accent) 0%, transparent 60%)",
+        }}
+      />
+      <div className="animate-scale-in text-center">
         <h1 className="text-4xl font-bold tracking-tight">Pulse</h1>
-        <p className="mt-2 max-w-sm text-zinc-400">
+        <p className="mt-2 max-w-sm text-fg-muted">
           A living globe of anonymous strangers. Drop onto the map and connect.
         </p>
       </div>
@@ -45,16 +50,25 @@ export default function EntryGate({
       <button
         onClick={enter}
         disabled={status === "locating"}
-        className="rounded-full bg-emerald-400 px-8 py-3 font-semibold text-zinc-950 transition hover:bg-emerald-300 disabled:opacity-60"
+        className="flex items-center gap-2 rounded-full bg-accent px-8 py-3 font-semibold text-surface transition hover:bg-accent-soft disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
-        {status === "locating" ? "Locating…" : "Enter Pulse"}
+        {status === "locating" ? (
+          <>
+            <span className="inline-block animate-spinner" />
+            Locating
+          </>
+        ) : (
+          "Enter Pulse"
+        )}
       </button>
 
       {status === "error" && (
-        <p className="max-w-sm text-center text-sm text-red-400">{error}</p>
+        <p className="max-w-sm animate-fade-in text-center text-sm text-danger">
+          {error}
+        </p>
       )}
 
-      <p className="max-w-sm text-center text-xs text-zinc-500">
+      <p className="max-w-sm text-center text-xs text-fg-dim">
         No sign-up. Your dot is placed 1–3&nbsp;km from your real location.
         Nothing is stored — closing the tab ends everything.
       </p>
